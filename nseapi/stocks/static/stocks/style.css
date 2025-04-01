@@ -1,0 +1,213 @@
+/* Universal Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #ebebeb; /* Softer, light background */
+    color: #333;
+    line-height: 1.6;
+    padding-top: 60px; /* Space for fixed header */
+}
+
+/* Header Styles */
+.header {
+    background-color: #7532f3; /* Deep, sophisticated blue */
+    color: #fff;
+    text-align: center;
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    transition: background-color 0.3s ease-in-out;
+}
+
+/* Header hover effect */
+.header:hover {
+    background-color: #7532f3;
+}
+
+/* Main section padding */
+main {
+    padding: 3rem;
+    margin-top: 80px; /* Offset for fixed header */
+}
+
+/* Filter Section */
+.filter-section {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Modern Filter Container */
+.filter-container {
+    display: inline-block;
+    background-color: #fff;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.filter-container:hover {
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15); /* Enhanced hover shadow */
+}
+
+/* Label Styling */
+.filter-container label {
+    display: block;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+/* Input Field Styling */
+.filter-container input {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #333;
+    background-color: #fafafa;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.filter-container input:focus {
+    border-color: #3498db; /* Accent color on focus */
+    background-color: #fff;
+    outline: none;
+}
+
+/* Button Styles */
+button {
+    padding: 0.8rem 1.5rem;
+    background-color: #3498db; /* Blue Button */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background-color: #2980b9;
+    transform: translateY(-3px); /* Slight raise effect */
+}
+
+button:active {
+    background-color: #2471a3; /* Darker shade on click */
+}
+
+/* Chart Section */
+.chart-section {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* Footer Section */
+footer {
+    background-color: #7532f3;
+    color: #fff;
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: 3rem;
+    border-top: 2px solid #ddd;
+}
+
+/* Dashboard Section */
+.dashboard-section {
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+/* Dashboard Grid Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Dashboard Card Styling */
+.dashboard-card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px); /* Slight lift effect */
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Number Styling */
+.dashboard-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #3498db;
+}
+
+/* Text Styling */
+.dashboard-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Stocks Table Styles */
+.stocks-table {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+}
+
+.stocks-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.stocks-table th,
+.stocks-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #f4f4f4;
+}
+
+.stocks-table th {
+    background-color: #fafafa;
+    font-weight: 600;
+}
+
+.stocks-table td {
+    font-size: 1.1rem;
+}
+
+/* Positive and Negative Value Color */
+.positive {
+    color: #2ecc71; /* Green */
+}
+
+.negative {
+    color: #e74c3c; /* Red */
+}
+
+/* Smooth Hover Transitions for Table Rows */
+.stocks-table tr:hover {
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease;
+}
