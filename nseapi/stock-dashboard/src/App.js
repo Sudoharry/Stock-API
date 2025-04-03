@@ -13,6 +13,8 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Portfolio from './components/Portfolio';
 import Watchlist from './components/Watchlist';
+import Profile from './components/Profile';
+import RiskCalculator from './components/RiskCalculator';
 import axios from "axios";
 import "./styles.css";
 
@@ -36,6 +38,7 @@ const App = () => {
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [topPerformers, setTopPerformers] = useState([]);
   
   // Count stocks by sector
   const sectorCounts = React.useMemo(() => {
@@ -75,10 +78,16 @@ const App = () => {
           change_percentage: parseFloat(stock.change_percentage) || 0
         }));
 
+        // Sort stocks by change percentage to get top performers
+        const sortedStocks = [...processedStocks].sort((a, b) => b.change_percentage - a.change_percentage);
+        const topTenStocks = sortedStocks.slice(0, 10);
+
         console.log('Processed stocks:', processedStocks);
+        console.log('Top performers:', topTenStocks);
 
         setStocks(processedStocks);
         setFilteredStocks(processedStocks);
+        setTopPerformers(topTenStocks);
 
         // Extract and set sectors
         const uniqueSectors = [...new Set(processedStocks
@@ -120,10 +129,17 @@ const App = () => {
       }
     };
 
+    // Initial fetch
     fetchStockData();
-    const interval = setInterval(fetchStockData, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
+
+    // Set up interval for periodic updates
+    const intervalId = setInterval(fetchStockData, 60000); // Refresh every minute
+
+    // Cleanup function to clear interval when component unmounts
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array means this effect runs once on mount
 
   // Filter stocks by sector
   useEffect(() => {
@@ -149,17 +165,87 @@ const App = () => {
     }
   };
 
-  const handleLogin = (userData) => {
+  // Check for existing auth on mount
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    const user = localStorage.getItem('user');
+    if (token && user) {
+      setIsAuthenticated(true);
+      setUser(JSON.parse(user));
+    }
+  }, []);
+
+  const handleLogin = (data) => {
     setIsAuthenticated(true);
-    setUser(userData);
-    localStorage.setItem('token', userData.token);
+    setUser(data.user);
+    localStorage.setItem('user', JSON.stringify(data.user));
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      await fetch('http://localhost:8000/api/auth/logout/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken
+        })
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
   };
+
+  // Add axios interceptor for token refresh
+  useEffect(() => {
+    axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const refreshToken = localStorage.getItem('refresh_token');
+            const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+              refresh: refreshToken
+            });
+
+            if (response.data.access) {
+              localStorage.setItem('access_token', response.data.access);
+              axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+              originalRequest.headers['Authorization'] = `Bearer ${response.data.access}`;
+              return axios(originalRequest);
+            }
+          } catch (refreshError) {
+            handleLogout();
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+  }, []);
+
+  // Add auth header to all axios requests
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, [isAuthenticated]);
 
   const PrivateRoute = ({ children }) => {
     return isAuthenticated ? children : <Navigate to="/login" />;
@@ -193,11 +279,38 @@ const App = () => {
           <Routes>
             <Route path="/" element={
               <>
-                <Dashboard data={dashboardData} />
+                <div className="dashboard-stats">
+                  <div className="dashboard">
+                    <div className="dashboard-card">
+                      <h3>Total Stocks</h3>
+                      <div className="dashboard-number">{dashboardData.totalStocks}</div>
+                    </div>
+                    <div className="dashboard-card">
+                      <h3>Market Performance</h3>
+                      <div className="performance-container">
+                        <div className="performance positive">
+                          <span>{dashboardData.gainersCount}</span>
+                          <span className="label">Gainers</span>
+                        </div>
+                        <div className="performance negative">
+                          <span>{dashboardData.losersCount}</span>
+                          <span className="label">Losers</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="dashboard-card">
+                      <h3>Market Status</h3>
+                      <MarketStatus status={dashboardData.marketStatus} />
+                    </div>
+                  </div>
+                </div>
                 <div className="dashboard-grid">
-                  <MarketStatus status={dashboardData.marketStatus} />
-                  <TopStocks stocks={stocks.slice(0, 5)} />
-                  <TopSectors sectors={topSectors} />
+                  <div className="top-stocks-container">
+                    <TopStocks stocks={topPerformers} />
+                  </div>
+                  <div className="top-sectors-container">
+                    <TopSectors sectors={topSectors} />
+                  </div>
                 </div>
               </>
             } />
@@ -207,6 +320,11 @@ const App = () => {
             <Route path="/register" element={
               isAuthenticated ? <Navigate to="/" /> : <Register onLogin={handleLogin} />
             } />
+            <Route path="/profile" element={
+              <PrivateRoute>
+                <Profile user={user} />
+              </PrivateRoute>
+            } />
             <Route path="/portfolio" element={
               <PrivateRoute>
                 <Portfolio />
@@ -215,6 +333,11 @@ const App = () => {
             <Route path="/watchlist" element={
               <PrivateRoute>
                 <Watchlist />
+              </PrivateRoute>
+            } />
+            <Route path="/risk-calculator" element={
+              <PrivateRoute>
+                <RiskCalculator />
               </PrivateRoute>
             } />
             <Route path="/stocks" element={

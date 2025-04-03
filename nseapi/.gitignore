@@ -1,0 +1,64 @@
+# Node.js
+node_modules/
+.npm/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.DS_Store
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+env/
+venv/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environment
+/.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Django & Flask
+instance/
+*.sqlite3
+*.pot
+*.mo
+
+# React
+/build/
+/dist/
+.cache/
+public/*.hot-update.js
+public/*.hot-update.json
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Miscellaneous
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+Thumbs.db
