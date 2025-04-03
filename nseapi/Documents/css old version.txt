@@ -1,0 +1,175 @@
+
+
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Visualization</title>
+    <link rel="stylesheet" href="{% static 'stocks/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <h1>Stock Market Visualization</h1>
+    </header>
+    <main>
+        <!-- Add Dashboard Section -->
+        <section class="dashboard-section">
+            <div class="dashboard-grid">
+                <!-- Add icons to cards -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line card-icon"></i>
+                        <h3>Total Stocks</h3>
+                    </div>
+                    <p class="dashboard-number">{{ total_stocks }}</p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-building card-icon"></i>
+                        <h3>Market Status</h3>
+                    </div>
+                    <p class="dashboard-text status-pill {% if market_status == 'Open' %}positive{% else %}negative{% endif %}">
+                        {{ market_status }}
+                    </p>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar card-icon"></i>
+                        <h3>Gainers/Losers</h3>
+                    </div>
+                    <div class="performance-container">
+                        <div class="performance positive">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>{{ gainers_count }}</span>
+                        </div>
+                        <div class="performance negative">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>{{ losers_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div> 
+
+    <!-- Top Performing Stocks -->
+    <div class="stocks-table">
+        <h3>Top Performing Stocks</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Change %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in top_stocks %}
+                <tr>
+                    <td>{{ stock.symbol }}</td>
+                    <td>{{ stock.name }}</td>
+                    {% comment %} <td>{{ stock.sector }}</td> {% endcomment %}
+                    <td>₹{{ stock.current_price|floatformat:2 }}</td>
+                    <td class="{% if stock.change_percentage >= 0 %}positive{% else %}negative{% endif %}">
+                        {{ stock.change_percentage|floatformat:2 }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Top Sectors -->
+    <div class="stocks-table">
+        <h3>Top Performing Sectors</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sector</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sector in top_sectors %}
+                <tr>
+                    <td>{{ sector.name }}</td>
+                    <td class="{% if sector.performance >= 0 %}positive{% else %}negative{% endif %}">
+                        {{ sector.performance|floatformat:2 }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+        <!-- Sector Filter -->
+<div class="sector-filter">
+    <h3>Filter by Sector:</h3>
+    <div class="sector-tags">
+        {% if sectors %}
+        {% for sector in sectors %}
+        <button class="sector-tag" data-sector="{{ sector|slugify }}">
+            {{ sector }}
+        </button>
+        {% endfor %}
+        {% else %}
+        <p>No sectors available.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Full Stock List -->
+<div class="stock-list">
+    <h3>NSE Listed Stocks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Company Name</th>
+                <th>Sector</th>
+                <th>Price</th>
+                <th>Change</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if all_stocks %}
+                {% for stock in all_stocks %}
+                <tr data-sector="{{ stock.sector|slugify }}">
+                    <td>{{ stock.symbol }}</td>
+                    <td>{{ stock.name }}</td>
+                    <td><span class="sector-badge">{{ stock.sector }}</span></td>
+                    <td>₹{{ stock.price|floatformat:2 }}</td>
+                    <td class="{% if stock.change >= 0 %}positive{% else %}negative{% endif %}">
+                        {{ stock.change|floatformat:2 }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5">No stocks available.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+        <!-- Existing Chart Section -->
+        <section class="chart-section">
+            <!-- ...existing code... -->
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Stock Market Visualization | Powered by Harendra Barot</p>
+    </footer>
+
+    <script src="{% static 'stocks/script.js' %}"></script>
+</body>
+</html>
