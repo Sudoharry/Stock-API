@@ -19,14 +19,14 @@ const SectorsPieChart = ({ sectors }) => {
     const data = {
       labels: sectors.map(sector => sector.name || 'Unknown'),
       datasets: [{
-        data: sectors.map(sector => Math.abs(sector.performance)),
+        data: sectors.map(sector => Math.abs(sector.change_percentage)),
         backgroundColor: sectors.map(sector => 
-          sector.performance >= 0 
-            ? `rgba(16, 185, 129, ${0.6 + Math.abs(sector.performance/10)})`  // Green with varying opacity
-            : `rgba(239, 68, 68, ${0.6 + Math.abs(sector.performance/10)})`   // Red with varying opacity
+          sector.change_percentage >= 0 
+            ? `rgba(16, 185, 129, ${0.6 + Math.abs(sector.change_percentage/10)})`  // Green with varying opacity
+            : `rgba(239, 68, 68, ${0.6 + Math.abs(sector.change_percentage/10)})`   // Red with varying opacity
         ),
         borderColor: sectors.map(sector => 
-          sector.performance >= 0 ? '#059669' : '#dc2626'
+          sector.change_percentage >= 0 ? '#059669' : '#dc2626'
         ),
         borderWidth: 1
       }]
@@ -50,7 +50,7 @@ const SectorsPieChart = ({ sectors }) => {
               generateLabels: (chart) => {
                 const { labels, datasets } = chart.data;
                 return labels.map((label, index) => ({
-                  text: `${label} (${sectors[index].performance.toFixed(2)}%)`,
+                  text: `${label} (${sectors[index].change_percentage.toFixed(2)}%)`,
                   fillStyle: datasets[0].backgroundColor[index],
                   strokeStyle: datasets[0].borderColor[index],
                   lineWidth: 1,

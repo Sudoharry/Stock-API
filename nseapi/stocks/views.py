@@ -8,14 +8,14 @@ This module contains views for handling stock-related operations including:
 """
 
 import logging
+import random
 from datetime import timedelta, time
-
 import pytz
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import JsonResponse
@@ -23,9 +23,10 @@ from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 import decimal
+from rest_framework.permissions import IsAuthenticated
 
-from .models import Stock, TopSector
-from .serializers import StockSerializer, TopSectorSerializer
+from .models import Stock, TopSector, Watchlist, ChatMessage
+from .serializers import StockSerializer, TopSectorSerializer, ChatMessageSerializer
 from .services import NseService
 
 
@@ -112,64 +113,35 @@ class StockViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def search_stocks(self, request):
         """Search stocks by symbol or name."""
-        query = request.query_params.get('query', '').strip()
+        query = request.query_params.get('query', '').strip().upper()
         logger.info(f"Searching stocks with query: {query}")
         
         if not query:
-            logger.info("Empty query, returning empty list")
             return Response([])
             
         try:
             # First try exact match on symbol
-            exact_matches = Stock.objects.filter(symbol__iexact=query).values(
-                'id', 'symbol', 'name', 'sector', 'current_price', 'change_percentage'
-            )
-            
-            if exact_matches.exists():
-                logger.info(f"Found exact match for symbol: {query}")
-                result = []
-                for stock in exact_matches:
-                    try:
-                        if stock['current_price'] is not None:
-                            stock['current_price'] = float(stock['current_price'])
-                        if stock['change_percentage'] is not None:
-                            stock['change_percentage'] = float(stock['change_percentage'])
-                        result.append(stock)
-                    except (TypeError, ValueError, decimal.InvalidOperation) as e:
-                        logger.warning(f"Error converting decimal for stock {stock['symbol']}: {e}")
-                        continue
-                return Response(result)
+            exact_matches = Stock.objects.filter(symbol__iexact=query)
             
             # Then try partial matches for both symbol and name
-            matches = Stock.objects.filter(
+            partial_matches = Stock.objects.filter(
                 Q(symbol__icontains=query) |
                 Q(name__icontains=query)
-            ).values(
-                'id', 'symbol', 'name', 'sector', 'current_price', 'change_percentage'
-            ).order_by('symbol')[:10]
+            ).exclude(
+                id__in=exact_matches.values('id')
+            ).order_by('symbol')[:50]  # Increased limit to 50
             
-            result = []
-            for stock in matches:
-                try:
-                    if stock['current_price'] is not None:
-                        stock['current_price'] = float(stock['current_price'])
-                    if stock['change_percentage'] is not None:
-                        stock['change_percentage'] = float(stock['change_percentage'])
-                    result.append(stock)
-                except (TypeError, ValueError, decimal.InvalidOperation) as e:
-                    logger.warning(f"Error converting decimal for stock {stock['symbol']}: {e}")
-                    continue
+            # Combine exact and partial matches
+            all_matches = list(exact_matches) + list(partial_matches)
             
-            logger.info(f"Returning {len(result)} matches for query: {query}")
-            return Response(result)
+            serializer = self.get_serializer(all_matches, many=True)
+            logger.info(f"Found {len(all_matches)} matches for query: {query}")
+            return Response(serializer.data)
             
         except Exception as e:
             logger.error(f"Error searching stocks: {str(e)}")
-            logger.error(f"Exception type: {type(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
             return Response(
-                {"error": "An error occurred while searching. Please try again."},
+                {"error": "An error occurred while searching stocks"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -213,6 +185,7 @@ class StockViewSet(viewsets.ModelViewSet):
                 TopSector.objects.update_or_create(
                     name=sector_data['name'],
                     defaults={
+                        'change_percentage': sector_data['performance'],
                         'performance': sector_data['performance'],
                         'stocks_count': sector_data['stocks_count']
                     }
@@ -262,6 +235,71 @@ class StockViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(filtered_stocks, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='dashboard-data')
+    def dashboard_data(self, request):
+        """Get aggregated data for the dashboard.
+        
+        Returns:
+            Response: Dashboard data including:
+                - Top gainers
+                - Top losers
+                - Most active stocks
+                - Sector performance
+                - Market statistics
+        """
+        try:
+            logger.info("Fetching dashboard data")
+            
+            # Get top gainers (stocks with highest positive change)
+            top_gainers = Stock.objects.filter(
+                change_percentage__gt=0
+            ).order_by('-change_percentage')[:5]
+            logger.info(f"Found {top_gainers.count()} top gainers")
+
+            # Get top losers (stocks with lowest negative change)
+            top_losers = Stock.objects.filter(
+                change_percentage__lt=0
+            ).order_by('change_percentage')[:5]
+            logger.info(f"Found {top_losers.count()} top losers")
+
+            # Get most active stocks (by market cap)
+            most_active = Stock.objects.exclude(
+                market_cap__isnull=True
+            ).order_by('-market_cap')[:5]
+            logger.info(f"Found {most_active.count()} most active stocks")
+
+            # Get sector performance
+            sectors = TopSector.objects.all().order_by('-change_percentage')[:5]
+            logger.info(f"Found {sectors.count()} sector performances")
+
+            # Calculate market statistics
+            total_stocks = Stock.objects.count()
+            gainers_count = Stock.objects.filter(change_percentage__gt=0).count()
+            losers_count = Stock.objects.filter(change_percentage__lt=0).count()
+
+            response_data = {
+                'top_gainers': StockSerializer(top_gainers, many=True).data,
+                'top_losers': StockSerializer(top_losers, many=True).data,
+                'most_active': StockSerializer(most_active, many=True).data,
+                'sector_performance': TopSectorSerializer(sectors, many=True).data,
+                'stats': {
+                    'total_stocks': total_stocks,
+                    'gainers_count': gainers_count,
+                    'losers_count': losers_count,
+                    'market_status': 'Open' if is_market_open() else 'Closed'
+                }
+            }
+
+            logger.info("Successfully compiled dashboard data")
+            return Response(response_data)
+
+        except Exception as e:
+            logger.error(f"Error fetching dashboard data: {str(e)}")
+            return Response(
+                {"error": "Failed to fetch dashboard data", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class TopSectorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for retrieving top performing sectors.
@@ -373,14 +411,14 @@ class DashboardDataAPI(APIView):
     """API View to retrieve dashboard stock statistics."""
     def get(self, request):
         market_status = "Open" if is_market_open() else "Closed"
-        gainersCount = Stock.objects.filter(change_percentage__gt=0).count()
-        losersCount = Stock.objects.filter(change_percentage__lt=0).count()
+        gainers_count = Stock.objects.filter(change_percentage__gt=0).count()
+        losers_count = Stock.objects.filter(change_percentage__lt=0).count()
 
         data = {
-            "totalStocks": Stock.objects.count(),
-            "marketStatus": market_status,
-            "gainersCount": Stock.objects.filter(change_percentage__gt=0).count(),
-            "losersCount": Stock.objects.filter(change_percentage__lt=0).count(),
+            "total_stocks": Stock.objects.count(),
+            "market_status": market_status,
+            "gainers_count": gainers_count,
+            "losers_count": losers_count,
         }
         return Response(data)
 
@@ -526,3 +564,177 @@ def sectors(request):
     except Exception as e:
         logger.error(f"Error in sectors view: {str(e)}")
         return JsonResponse({'error': 'Internal server error'}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_watchlist(request):
+    """Get the user's watchlist items."""
+    try:
+        watchlist_items = Watchlist.objects.filter(user=request.user)
+        data = [{
+            'id': item.id,
+            'symbol': item.stock.symbol,
+            'name': item.stock.name,
+            'current_price': item.stock.current_price,
+            'change_percentage': item.stock.change_percentage,
+            'target_price': item.target_price,
+            'notes': item.notes
+        } for item in watchlist_items]
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_to_watchlist(request):
+    """Add a stock to the user's watchlist."""
+    try:
+        symbol = request.data.get('symbol')
+        if not symbol:
+            return Response({'error': 'Symbol is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get or create the stock
+        try:
+            stock = Stock.objects.get(symbol=symbol)
+        except Stock.DoesNotExist:
+            return Response({'error': 'Stock not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if stock is already in watchlist
+        if Watchlist.objects.filter(user=request.user, stock=stock).exists():
+            return Response({'error': 'Stock already in watchlist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create watchlist item
+        watchlist_item = Watchlist.objects.create(
+            user=request.user,
+            stock=stock,
+            target_price=request.data.get('target_price', None),
+            notes=request.data.get('notes', '')
+        )
+
+        data = {
+            'id': watchlist_item.id,
+            'symbol': stock.symbol,
+            'name': stock.name,
+            'current_price': stock.current_price,
+            'change_percentage': stock.change_percentage,
+            'target_price': watchlist_item.target_price,
+            'notes': watchlist_item.notes
+        }
+        return Response(data, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_from_watchlist(request, item_id):
+    """Remove a stock from the user's watchlist."""
+    try:
+        watchlist_item = Watchlist.objects.get(id=item_id, user=request.user)
+        watchlist_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Watchlist.DoesNotExist:
+        return Response({'error': 'Watchlist item not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_heatmap_data(request):
+    """
+    Get stock data for the heatmap visualization
+    Returns a list of stocks with price and percentage change for heatmap display
+    """
+    try:
+        # Get all stocks with price and change data
+        stocks = Stock.objects.all()
+        
+        # Transform to dict for heatmap
+        heatmap_data = []
+        for stock in stocks:
+            # Use actual change_percentage if available, otherwise generate random
+            percent_change = stock.change_percentage if stock.change_percentage is not None else round(random.uniform(-8.0, 8.0), 2)
+            
+            heatmap_data.append({
+                'symbol': stock.symbol,
+                'name': stock.name,
+                'sector': stock.sector,
+                'price': float(stock.current_price) if hasattr(stock, 'current_price') and stock.current_price else 0.0,
+                'percent_change': float(percent_change),
+            })
+        
+        # Sort by sector and then by percentage change
+        heatmap_data.sort(key=lambda x: (x['sector'] or 'Unknown', -x['percent_change']))
+        
+        return Response(heatmap_data)
+    
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+def get_chat_messages(request):
+    """
+    Retrieve the most recent chat messages.
+    """
+    try:
+        # Get the latest 100 messages in reverse chronological order
+        messages = ChatMessage.objects.order_by('-timestamp')[:100]
+        
+        # Reverse the list to display oldest messages first
+        messages = list(reversed(messages))
+        
+        serializer = ChatMessageSerializer(messages, many=True)
+        logger.info(f"Retrieved {len(messages)} chat messages")
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error retrieving chat messages: {str(e)}")
+        return Response(
+            {"error": "Failed to retrieve chat messages"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_chat_message(request):
+    """
+    Create a new chat message.
+    """
+    try:
+        data = {
+            'user_id': str(request.user.id),
+            'username': request.user.username,
+            'message': request.data.get('message')
+        }
+        
+        if not data['message']:
+            logger.warning(f"Attempt to create empty message by {request.user.username}")
+            return Response(
+                {"error": "Message content is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        serializer = ChatMessageSerializer(data=data)
+        if serializer.is_valid():
+            chat_message = serializer.save()
+            logger.info(f"Chat message created by {request.user.username}: {data['message'][:30]}...")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            logger.error(f"Invalid chat message data: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error creating chat message: {str(e)}")
+        return Response(
+            {"error": "Failed to create chat message"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+# Template view for chat
+def chat_view(request):
+    """
+    Render the chat template.
+    """
+    return render(request, 'stocks/chat.html')

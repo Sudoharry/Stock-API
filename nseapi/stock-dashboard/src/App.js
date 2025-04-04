@@ -15,6 +15,9 @@ import Portfolio from './components/Portfolio';
 import Watchlist from './components/Watchlist';
 import Profile from './components/Profile';
 import RiskCalculator from './components/RiskCalculator';
+import StockHeatmap from './components/StockHeatmap';
+import ChatRoom from './components/ChatRoom';
+import ChatWidget from './components/ChatWidget';
 import axios from "axios";
 import "./styles.css";
 
@@ -32,7 +35,7 @@ const App = () => {
   const [sectors, setSectors] = useState(["All"]);
   const [dashboardData, setDashboardData] = useState({
     totalStocks: 0,
-    marketStatus: "Closed",
+    market_status: "Closed",
     gainersCount: 0,
     losersCount: 0
   });
@@ -102,10 +105,11 @@ const App = () => {
         
         if (dashboardResponse.data) {
           setDashboardData({
-            totalStocks: dashboardResponse.data.totalStocks || 0,
-            marketStatus: dashboardResponse.data.marketStatus || "Closed",
-            gainersCount: dashboardResponse.data.gainersCount || 0,
-            losersCount: dashboardResponse.data.losersCount || 0
+            totalStocks: dashboardResponse.data.stats?.total_stocks || 0,
+            market_status: dashboardResponse.data.stats?.market_status || "Closed",
+            gainersCount: dashboardResponse.data.stats?.gainers_count || 0,
+            losersCount: dashboardResponse.data.stats?.losers_count || 0,
+            sector_performance: dashboardResponse.data.sector_performance || []
           });
         }
 
@@ -117,8 +121,30 @@ const App = () => {
 
         // Fetch sectors performance
         const sectorsResponse = await axios.get(`${API_BASE_URL}/stocks/sectors/`);
-        if (Array.isArray(sectorsResponse.data)) {
-          setTopSectors(sectorsResponse.data);
+        console.log('Sectors response:', sectorsResponse.data);
+        
+        // Handle different possible response formats
+        if (sectorsResponse.data) {
+          let sectorsData = [];
+          
+          // Check if the data is in {sectors: [...]} format
+          if (sectorsResponse.data.sectors && Array.isArray(sectorsResponse.data.sectors)) {
+            sectorsData = sectorsResponse.data.sectors;
+          } 
+          // Check if data is an array directly
+          else if (Array.isArray(sectorsResponse.data)) {
+            sectorsData = sectorsResponse.data;
+          }
+          // Fallback to dashboard data's sector performance
+          else if (dashboardResponse.data && dashboardResponse.data.sector_performance) {
+            sectorsData = dashboardResponse.data.sector_performance;
+          }
+          
+          // Ensure we have valid data before setting state
+          if (sectorsData.length > 0) {
+            console.log('Setting top sectors data:', sectorsData);
+            setTopSectors(sectorsData);
+          }
         }
 
       } catch (error) {
@@ -300,16 +326,16 @@ const App = () => {
                     </div>
                     <div className="dashboard-card">
                       <h3>Market Status</h3>
-                      <MarketStatus status={dashboardData.marketStatus} />
+                      <MarketStatus status={dashboardData.market_status} />
                     </div>
                   </div>
                 </div>
                 <div className="dashboard-grid">
                   <div className="top-stocks-container">
-                    <TopStocks stocks={topPerformers} />
+                    <TopStocks stocks={topPerformers} loading={loading} error={error} />
                   </div>
                   <div className="top-sectors-container">
-                    <TopSectors sectors={topSectors} />
+                    <TopSectors sectors={topSectors} loading={loading} error={error} />
                   </div>
                 </div>
               </>
@@ -335,9 +361,19 @@ const App = () => {
                 <Watchlist />
               </PrivateRoute>
             } />
+            <Route path="/chatroom" element={
+              <PrivateRoute>
+                <ChatRoom user={user} />
+              </PrivateRoute>
+            } />
             <Route path="/risk-calculator" element={
               <PrivateRoute>
                 <RiskCalculator />
+              </PrivateRoute>
+            } />
+            <Route path="/heatmap" element={
+              <PrivateRoute>
+                <StockHeatmap />
               </PrivateRoute>
             } />
             <Route path="/stocks" element={
@@ -368,7 +404,8 @@ const App = () => {
             } />
           </Routes>
         </main>
-        <Footer />
+        <Footer user={user} />
+        {isAuthenticated && user && <ChatWidget user={user} />}
       </div>
     </BrowserRouter>
   );
