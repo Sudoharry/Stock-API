@@ -2,7 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles.css';
 
-const Footer = () => {
+const Footer = ({ user }) => {
+  const handleSocialClick = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <footer className="app-footer">
       <div className="footer-content">
@@ -14,18 +18,34 @@ const Footer = () => {
             market insights.
           </p>
           <div className="social-links">
-            <a href="https://twitter.com" className="social-link" target="_blank" rel="noopener noreferrer">
+            <button 
+              className="social-link" 
+              onClick={() => handleSocialClick('https://twitter.com')}
+              aria-label="Twitter"
+            >
               <i className="fab fa-twitter"></i>
-            </a>
-            <a href="https://linkedin.com" className="social-link" target="_blank" rel="noopener noreferrer">
+            </button>
+            <button 
+              className="social-link" 
+              onClick={() => handleSocialClick('https://linkedin.com')}
+              aria-label="LinkedIn"
+            >
               <i className="fab fa-linkedin-in"></i>
-            </a>
-            <a href="https://facebook.com" className="social-link" target="_blank" rel="noopener noreferrer">
+            </button>
+            <button 
+              className="social-link" 
+              onClick={() => handleSocialClick('https://facebook.com')}
+              aria-label="Facebook"
+            >
               <i className="fab fa-facebook-f"></i>
-            </a>
-            <a href="https://instagram.com" className="social-link" target="_blank" rel="noopener noreferrer">
+            </button>
+            <button 
+              className="social-link" 
+              onClick={() => handleSocialClick('https://instagram.com')}
+              aria-label="Instagram"
+            >
               <i className="fab fa-instagram"></i>
-            </a>
+            </button>
           </div>
         </div>
 
@@ -50,6 +70,15 @@ const Footer = () => {
                 Watchlist
               </Link>
             </li>
+            {user && (
+              <li>
+                <Link to="/chatroom">
+                  <i className="fas fa-comments"></i>
+                  Traders' Chat
+                  <span className="chat-badge-small">Live</span>
+                </Link>
+              </li>
+            )}
             <li>
               <Link to="/market-news">
                 <i className="fas fa-newspaper"></i>
@@ -72,6 +101,12 @@ const Footer = () => {
               <Link to="/technical-analysis">
                 <i className="fas fa-chart-bar"></i>
                 Technical Analysis
+              </Link>
+            </li>
+            <li>
+              <Link to="/heatmap">
+                <i className="fas fa-th"></i>
+                Stock Heatmap
               </Link>
             </li>
             <li>

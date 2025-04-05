@@ -29,6 +29,15 @@ const Header = ({ user, onLogout }) => {
           <Link to="/" className="nav-link">Dashboard</Link>
           <Link to="/watchlist" className="nav-link">Watchlist</Link>
           <Link to="/portfolio" className="nav-link">Portfolio</Link>
+          <Link to="/heatmap" className="nav-link">
+            <i className="fas fa-th"></i> Heatmap
+          </Link>
+          {user && (
+            <Link to="/chatroom" className="nav-link chat-link">
+              <i className="fas fa-comments"></i> Trading Chat
+              <span className="chat-badge">Live</span>
+            </Link>
+          )}
         </nav>
 
         <div className="header-right">

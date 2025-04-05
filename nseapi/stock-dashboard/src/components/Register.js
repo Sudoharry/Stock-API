@@ -95,85 +95,87 @@ const Register = ({ onLogin }) => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Create an Account</h2>
-        {error && (
-          <div className="error-message">
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
+    <div className="register-page">
+      <div className="auth-container">
+        <div className="auth-card">
+          <h2>Create an Account</h2>
+          {error && (
+            <div className="error-message">
+              <i className="fas fa-exclamation-circle"></i>
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className={isSubmitted ? 'form-submitted' : ''} noValidate>
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                minLength="3"
+                autoComplete="username"
+                placeholder="Choose a username"
+              />
+              <i className="fas fa-user input-icon"></i>
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+                placeholder="Enter your email"
+              />
+              <i className="fas fa-envelope input-icon"></i>
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength="8"
+                autoComplete="new-password"
+                placeholder="Create a password"
+              />
+              <i className="fas fa-lock input-icon"></i>
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                minLength="8"
+                autoComplete="new-password"
+                placeholder="Confirm your password"
+              />
+              <i className="fas fa-lock input-icon"></i>
+            </div>
+            <button type="submit" className="submit-btn" disabled={isLoading}>
+              {isLoading ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                'Register'
+              )}
+            </button>
+          </form>
+          <div className="auth-link">
+            Already have an account? <Link to="/login">Login</Link>
           </div>
-        )}
-        <form onSubmit={handleSubmit} className={isSubmitted ? 'form-submitted' : ''} noValidate>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              minLength="3"
-              autoComplete="username"
-              placeholder="Choose a username"
-            />
-            <i className="fas fa-user input-icon"></i>
-          </div>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              autoComplete="email"
-              placeholder="Enter your email"
-            />
-            <i className="fas fa-envelope input-icon"></i>
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength="8"
-              autoComplete="new-password"
-              placeholder="Create a password"
-            />
-            <i className="fas fa-lock input-icon"></i>
-          </div>
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              minLength="8"
-              autoComplete="new-password"
-              placeholder="Confirm your password"
-            />
-            <i className="fas fa-lock input-icon"></i>
-          </div>
-          <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? (
-              <i className="fas fa-spinner fa-spin"></i>
-            ) : (
-              'Register'
-            )}
-          </button>
-        </form>
-        <div className="auth-link">
-          Already have an account? <Link to="/login">Login</Link>
         </div>
       </div>
     </div>

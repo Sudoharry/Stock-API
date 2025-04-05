@@ -69,55 +69,64 @@ const Login = ({ onLogin }) => {
     }
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Login to Market Pulse</h2>
-        {error && (
-          <div className="error-message">
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
-          </div>
-        )}
-        <form onSubmit={handleSubmit} className={isSubmitted ? 'form-submitted' : ''} noValidate>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              autoComplete="username"
-              placeholder="Enter your username"
-            />
-            <i className="fas fa-user input-icon"></i>
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="current-password"
-              placeholder="Enter your password"
-            />
-            <i className="fas fa-lock input-icon"></i>
-          </div>
-          <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? (
-              <i className="fas fa-spinner fa-spin"></i>
-            ) : (
-              'Login'
-            )}
+    <div className="login-page">
+      <div className="auth-container">
+        <div className="auth-card">
+          <button className="close-btn" onClick={handleClose}>
+            <i className="fas fa-times"></i>
           </button>
-        </form>
-        <div className="auth-link">
-          Don't have an account? <Link to="/register">Register</Link>
+          <h2>Login to Market Pulse</h2>
+          {error && (
+            <div className="error-message">
+              <i className="fas fa-exclamation-circle"></i>
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className={isSubmitted ? 'form-submitted' : ''} noValidate>
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                autoComplete="username"
+                placeholder="Enter your username"
+              />
+              <i className="fas fa-user input-icon"></i>
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="current-password"
+                placeholder="Enter your password"
+              />
+              <i className="fas fa-lock input-icon"></i>
+            </div>
+            <button type="submit" className="submit-btn" disabled={isLoading}>
+              {isLoading ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                'Login'
+              )}
+            </button>
+          </form>
+          <div className="auth-link">
+            Don't have an account? <Link to="/register">Register</Link>
+          </div>
         </div>
       </div>
     </div>

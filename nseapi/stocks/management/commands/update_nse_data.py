@@ -194,19 +194,65 @@ class Command(BaseCommand):
             logger.error(f"Error updating symbol {symbol}: {str(e)}")
     
     def update_sector_performance(self):
-        """Calculate and update top performing sectors"""
-        sectors = Stock.objects.values('sector').annotate(
-            avg_performance=models.Avg('change_percentage'),
-            stock_count=models.Count('symbol')
-        ).order_by('-avg_performance')[:5]  # Top 5 sectors
-        
+        """Calculate and update top performing sectors using weighted averages"""
+        # Get all stocks with valid data
+        stocks = Stock.objects.filter(
+            sector__isnull=False,
+            change_percentage__isnull=False,
+            current_price__gt=0
+        ).exclude(
+            sector__in=['', 'Unknown', 'unknown']
+        )
+
+        # Calculate sector performance using weighted averages
+        sectors_data = {}
+        for stock in stocks:
+            sector = stock.sector.strip()
+            if not sector:
+                continue
+
+            if sector not in sectors_data:
+                sectors_data[sector] = {
+                    'total_weighted_change': 0,
+                    'total_weight': 0,
+                    'count': 0
+                }
+
+            # Use market cap as weight, fallback to price * 1M if not available
+            weight = float(stock.market_cap if stock.market_cap else (stock.current_price * 1000000))
+            change = float(stock.change_percentage)
+
+            sectors_data[sector]['total_weighted_change'] += change * weight
+            sectors_data[sector]['total_weight'] += weight
+            sectors_data[sector]['count'] += 1
+
+        # Convert to list and calculate final performance
+        sectors = []
+        for sector, data in sectors_data.items():
+            if data['count'] >= 2:  # Only include sectors with at least 2 stocks
+                avg_performance = data['total_weighted_change'] / data['total_weight']
+                sectors.append({
+                    'name': sector,
+                    'performance': round(avg_performance, 2),
+                    'change_percentage': round(avg_performance, 2),
+                    'stocks_count': data['count']
+                })
+
+        # Sort by absolute performance and take top 5
+        top_sectors = sorted(sectors, key=lambda x: abs(x['performance']), reverse=True)[:5]
+
         # Bulk delete old sector data
         TopSector.objects.all().delete()
-        
+
         # Bulk create new sector entries
         sector_entries = [
-            TopSector(name=sector['sector'], performance=sector['avg_performance'], stocks_count=sector['stock_count'])
-            for sector in sectors
+            TopSector(
+                name=sector['name'],
+                performance=sector['performance'],
+                change_percentage=sector['change_percentage'],
+                stocks_count=sector['stocks_count']
+            )
+            for sector in top_sectors
         ]
-        
+
         TopSector.objects.bulk_create(sector_entries)
