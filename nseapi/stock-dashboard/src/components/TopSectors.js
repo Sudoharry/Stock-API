@@ -5,7 +5,7 @@ const TopSectors = ({ sectors = [] }) => {
   if (!sectors || sectors.length === 0) {
     return (
       <div className="sectors-container">
-        <div className="sectors-header">
+        <div className="card-header">
           <h3>Top Performing Sectors</h3>
         </div>
         <div className="sectors-content">
@@ -18,7 +18,7 @@ const TopSectors = ({ sectors = [] }) => {
   // Sort sectors by performance (highest to lowest)
   const sortedSectors = [...sectors]
     .sort((a, b) => Math.abs(b.performance || 0) - Math.abs(a.performance || 0))
-    .slice(0, 5); // Show top 5 for better visualization
+    .slice(0, 5); // Show top 5 sectors
 
   // Format percentage value
   const formatPercentage = (value) => {
@@ -28,43 +28,21 @@ const TopSectors = ({ sectors = [] }) => {
 
   return (
     <div className="sectors-container">
-      <div className="sectors-header">
+      <div className="card-header">
         <h3>Top Performing Sectors</h3>
       </div>
-      <div className="top-sectors-layout">
-        {/* Left Column - Percentages */}
-        <div className="percentages-column">
-          {sortedSectors.map((sector, index) => (
-            <div 
-              key={`badge-${index}`} 
-              className={`percentage-badge ${sector.performance >= 0 ? 'positive' : 'negative'}`}
-            >
-              {formatPercentage(sector.performance)}%
+      <div className="top-sectors-list">
+        {sortedSectors.map((sector, index) => (
+          <div key={index} className="top-sector-item">
+            <div className="sector-rank">#{index + 1}</div>
+            <div className="sector-info">
+              <div className="sector-name">{sector.name || sector.sector || 'Unknown'}</div>
+              <div className={`sector-performance ${sector.performance >= 0 ? 'positive' : 'negative'}`}>
+                {sector.performance >= 0 ? '+' : ''}{formatPercentage(sector.performance)}%
+              </div>
             </div>
-          ))}
-        </div>
-
-        {/* Right Column - Table */}
-        <div className="sectors-table-wrapper">
-          <table className="simple-table">
-            <thead>
-              <tr>
-                <th>Sector</th>
-                <th>Performance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedSectors.map((sector, index) => (
-                <tr key={`row-${index}`}>
-                  <td>{sector.name || 'Unknown'}</td>
-                  <td className={sector.performance >= 0 ? 'positive' : 'negative'}>
-                    {formatPercentage(sector.performance)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

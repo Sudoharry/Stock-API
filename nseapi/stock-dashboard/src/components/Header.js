@@ -1,29 +1,47 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles.css';
 
-const Header = ({ isAuthenticated, user, onLogout }) => {
+const Header = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  const navigateToProfile = () => {
+    navigate('/profile');
+  };
+
   return (
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
           <Link to="/" className="logo">
             <i className="fas fa-chart-line"></i>
-            <span>Stock Dashboard</span>
+            <span>Market Pulse</span>
           </Link>
         </div>
         
         <nav className="header-nav">
           <Link to="/" className="nav-link">Dashboard</Link>
-          <Link to="/portfolio" className="nav-link">Portfolio</Link>
           <Link to="/watchlist" className="nav-link">Watchlist</Link>
+          <Link to="/portfolio" className="nav-link">Portfolio</Link>
         </nav>
 
         <div className="header-right">
-          {isAuthenticated ? (
+          {user ? (
             <div className="user-menu">
-              <span className="user-name">{user?.username}</span>
-              <button onClick={onLogout} className="logout-btn">
+              <button 
+                className="user-name"
+                onClick={navigateToProfile}
+              >
+                <i className="fas fa-user-circle"></i>
+                {user.username}
+              </button>
+              <button className="logout-btn" onClick={handleLogout}>
                 <i className="fas fa-sign-out-alt"></i>
                 Logout
               </button>
