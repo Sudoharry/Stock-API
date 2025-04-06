@@ -1,4 +1,4 @@
-# Product: Market Pulse
+# Market Pulse
 
 ## Product Description: The Market pulse is a stock visualiation tools that can track the NSE stocks with others features where user can track the stock performance, create a watchlist where
 they can add their top stocks that are in the trend. They can also create their portfolio to see the performance of their stocks.
